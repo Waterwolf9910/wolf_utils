@@ -1,0 +1,9 @@
+name: WolfUtils
+version: 0.1.1
+main: com.waterwolfies.wolf_utils.Plugin
+description: A Plugin that allows you to silk touch spawners
+author: Waterwolf9910
+website: https://waterwolfies.com
+api-version: 1.19
+libraries:
+  - "io.github.classgraph:classgraph:4.8.157"

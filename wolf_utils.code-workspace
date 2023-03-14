@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "java_test",
+			"path": "../java_test"
+		}
+	],
+	"settings": {
+		"java.configuration.updateBuildConfiguration": "automatic",
+		"java.compile.nullAnalysis.mode": "automatic",
+		"yaml.schemas": {
+			"https://json.schemastore.org/bukkit-plugin.json": "file:///c%3A/Users/water/wolf_utils/lib/src/main/resources/plugin.yml"
+		},
+		"java.dependency.packagePresentation": "hierarchical",
+		"java.dependency.syncWithFolderExplorer": false
+	}
+}

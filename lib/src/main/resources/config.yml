@@ -1,0 +1,9 @@
+version: "0.1.1"
+wrench: true
+silk_spawner: true
+wrench_blacklist:
+  - "minecraft:chest"
+  - "minecraft:ender_chest"
+  - "minecraft:torch"
+  - "minecraft:bed"
+  - "minecraft:chest"
