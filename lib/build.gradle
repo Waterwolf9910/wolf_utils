@@ -12,6 +12,8 @@ plugins {
     id("xyz.jpenilla.run-paper") version "2.0.1"
 }
 
+version = "0.2.5"
+
 repositories {
     // Use Maven Central for resolving dependencies.
     mavenCentral()
@@ -33,12 +35,23 @@ dependencies {
 }
 
 java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(17))
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
 }
 
 jar {
-    archiveVersion = "0.1.1"
+    // archiveVersion = "0.1.1"
     archiveBaseName = rootProject.name
+}
+
+tasks.named("jar") {
+    manifest {
+        attributes(
+            'Implementation-Title': rootProject.name,
+            'Implementation-Version': project.version
+        )
+    }
 }
 
 // tasks.named('test') {

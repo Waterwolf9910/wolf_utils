@@ -1,9 +1,17 @@
-version: "0.1.1"
+# Used for internal config checking
+version: 0.2.1
+# Enabled the Wrench
 wrench: true
+# Enable Silk Touching Spawners
 silk_spawner: true
+# Enable Player Trades
+trade: true
+# Enable the Composter Gui
+composter_gui: true
+# Blacklisted items for the wrench
 wrench_blacklist:
   - "minecraft:chest"
   - "minecraft:ender_chest"
   - "minecraft:torch"
+  - "minecraft:wall_torch"
   - "minecraft:bed"
-  - "minecraft:chest"

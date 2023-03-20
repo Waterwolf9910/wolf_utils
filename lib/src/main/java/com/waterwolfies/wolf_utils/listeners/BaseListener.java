@@ -10,8 +10,8 @@ public abstract class BaseListener implements Listener {
     protected Plugin plugin;
     protected FileConfiguration config;
 
-    protected BaseListener(Plugin plugin, FileConfiguration config) {
+    protected BaseListener(Plugin plugin) {
         this.plugin = plugin;
-        this.config = config;
+        this.config = plugin.getConfig();
     }
 }

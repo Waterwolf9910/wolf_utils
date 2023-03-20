@@ -15,6 +15,7 @@
 			"https://json.schemastore.org/bukkit-plugin.json": "file:///c%3A/Users/water/wolf_utils/lib/src/main/resources/plugin.yml"
 		},
 		"java.dependency.packagePresentation": "hierarchical",
-		"java.dependency.syncWithFolderExplorer": false
+		"java.dependency.syncWithFolderExplorer": false,
+		"powershell.cwd": "c:\\Users\\water\\wolf_utils"
 	}
 }

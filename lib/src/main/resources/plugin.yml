@@ -1,9 +1,14 @@
 name: WolfUtils
-version: 0.1.1
+version: 0.2.5
 main: com.waterwolfies.wolf_utils.Plugin
 description: A Plugin that allows you to silk touch spawners
 author: Waterwolf9910
 website: https://waterwolfies.com
+load: STARTUP
 api-version: 1.19
 libraries:
   - "io.github.classgraph:classgraph:4.8.157"
+commands:
+  trade:
+    description: Commands to manage a Trade between users
+    usage: /trade inventory, /trade request <player>, /trade confirm <player>, /trade accept <player>

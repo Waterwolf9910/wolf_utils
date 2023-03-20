@@ -1,0 +1,7 @@
+allow barrels to be "opened" with the wrench [done]
+allow item frames to be turned invisible with wrench [done]
+add trade command [done]
+add force push from trade inventory [done]
+add composter inventory [done]
+add comments [started]
+fix bug in composter when clicking other blocks [done]

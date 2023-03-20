@@ -10,7 +10,6 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -22,17 +21,16 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 
 public class SilkSpawner extends BaseListener {
 
-    public SilkSpawner(Plugin plugin, FileConfiguration config) {
-        super(plugin, config);
+    public SilkSpawner(Plugin plugin) {
+        super(plugin);
     }
 
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
-        if (config.getBoolean("silk_spawner")) {
+        if (!config.getBoolean("silk_spawner")) {
             return;
         }
         Block block = event.getBlockPlaced();
@@ -49,7 +47,7 @@ public class SilkSpawner extends BaseListener {
     
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
-        if (config.getBoolean("silk_spawner")) {
+        if (!config.getBoolean("silk_spawner")) {
             return;
         }
         Block block = event.getBlock();
@@ -65,11 +63,11 @@ public class SilkSpawner extends BaseListener {
         // String string  = ((CreatureSpawner) block.getState()).getSpawnedType().getKey().asString();
         EntityType type = ((CreatureSpawner) block.getState()).getSpawnedType();
         ItemStack item = Bukkit.getItemFactory().createItemStack("minecraft:spawner{BlockEntityTag:{SpawnData:{entity:{id:\"" + type.getKey().asString() + "\"}}}}");
-        ItemMeta meta = Bukkit.getItemFactory().getItemMeta(Material.SPAWNER);
+        ItemMeta meta = item.getItemMeta();//Bukkit.getItemFactory().getItemMeta(Material.SPAWNER);
         List<Component> lore = new ArrayList<>();
-        try {
-            Component.translatable(type.translationKey(), NamedTextColor.AQUA);
-        } catch (Exception e) {}
+        // try {
+        //     lore.add(Component.translatable(type.translationKey(), NamedTextColor.AQUA));
+        // } catch (Exception e) {/* Catch incase custom entity */}
         meta.lore(lore);
         meta.getPersistentDataContainer().set(NamespacedKey.fromString("type", plugin), PersistentDataType.STRING, type.name());
         item.setItemMeta(meta);

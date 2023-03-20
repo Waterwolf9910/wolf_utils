@@ -8,4 +8,5 @@
  */
 
 rootProject.name = 'wolf_utils'
+// rootProject.version = "0.1.1"
 include('lib')

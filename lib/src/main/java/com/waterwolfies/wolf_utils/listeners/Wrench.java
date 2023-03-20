@@ -1,10 +1,8 @@
 package com.waterwolfies.wolf_utils.listeners;
 
 import com.waterwolfies.wolf_utils.Plugin;
-import com.waterwolfies.wolf_utils.recipes.WrenchRecipe;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -22,14 +20,16 @@ import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.Rail;
 import org.bukkit.block.data.Rotatable;
 import org.bukkit.block.data.type.Slab;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -38,9 +38,9 @@ import net.kyori.adventure.text.format.NamedTextColor;
 
 public class Wrench extends BaseListener {
 
-    public Wrench(Plugin plugin, FileConfiguration config) {
-        super(plugin, config);
-        if (config.getBoolean("wrench")) {
+    public Wrench(Plugin plugin) {
+        super(plugin);
+        if (!config.getBoolean("wrench")) {
             return;
         }
         if (Bukkit.getRecipe(recipe_key) == null) {
@@ -56,25 +56,46 @@ public class Wrench extends BaseListener {
             lore.add(Component.text("THE BIG SPIN~", NamedTextColor.AQUA));
             meta.lore(lore);
             item.setItemMeta(meta);
-            Bukkit.addRecipe(new WrenchRecipe(recipe_key, item.ensureServerConversions()));
+            Bukkit.addRecipe(new WrenchRecipe(item.ensureServerConversions()));
         }
     }
 
-    NamespacedKey item_key = NamespacedKey.fromString("wrench", plugin);
-    NamespacedKey recipe_key = NamespacedKey.fromString("wrench_recipe", plugin);
+    private NamespacedKey item_key = NamespacedKey.fromString("wrench", plugin);
+    private NamespacedKey recipe_key = NamespacedKey.fromString("wrench_recipe", plugin);
 
     // @EventHandler
     // public void onBlockClick(Event event) {
     //     event.getPlayer();
     // }
-    
-    HashMap<String, Integer> cd = new HashMap<>();
+
+    /**
+     * Allow Item Frames to be turned invisible
+     */
     @EventHandler
-    public void onBlockClick(PlayerInteractEvent event) {
-        if (config.getBoolean("wrench")) {
+    public void onEntityClick(PlayerInteractEntityEvent event) {
+        if (!config.getBoolean("wrench")) {
             return;
         }
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+        if (!(event.getRightClicked() instanceof ItemFrame frame)) {
+            return;
+        }
+        ItemStack item = event.getPlayer().getEquipment().getItemInMainHand();
+        if (item.getType() != Material.GOLDEN_HOE || !item.getItemMeta().getPersistentDataContainer().has(item_key)) {
+            return;
+        }
+
+        if (event.getPlayer().isSneaking()) {
+            frame.setVisible(!frame.isVisible());
+            event.setCancelled(true);
+        }
+    }
+    
+    /**
+     * Checks when a block is clicked
+     */
+    @EventHandler
+    public void onBlockClick(PlayerInteractEvent event) {
+        if (!config.getBoolean("wrench") || event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getInteractionPoint() == null) {
             return;
         }
         ItemStack item = event.getItem();
@@ -90,13 +111,17 @@ public class Wrench extends BaseListener {
         //     return;
         // }
         // cd.put(uuid, 1);
-        Block block = event.getClickedBlock();
+        Player player = event.getPlayer();
+        Block block = player.getTargetBlockExact(5);
         if (block == null) {
             return;
         }
+        if (config.getStringList("wrench_blacklist").contains(block.getType().getKey().asString())) {
+            return;
+        }
+        
         // System.out.println(d);
         BlockData bd = block.getBlockData();
-        Player player = event.getPlayer();
         if (player.isSneaking() && bd instanceof Openable blockData) {
             blockData.setOpen(!blockData.isOpen());
         } else if ((bd) instanceof Orientable blockData) {
@@ -271,5 +296,18 @@ public class Wrench extends BaseListener {
             }
         } */
         return blockData;
+    }
+
+    public class WrenchRecipe extends ShapedRecipe {
+
+        public WrenchRecipe(ItemStack item) {
+            super(Wrench.this.recipe_key, item);
+            this.shape("ees", "i|i", "g|g");
+            this.setIngredient('e', Material.EMERALD);
+            this.setIngredient('i', Material.IRON_INGOT);
+            this.setIngredient('g', Material.GOLD_INGOT);
+            this.setIngredient('|', Material.STICK);
+            this.setIngredient('s', Material.STRING);
+        }
     }
 }
