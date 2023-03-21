@@ -44,7 +44,7 @@ public class Trade extends BaseListener implements TabCompleter {
 
     public Trade(Plugin plugin) {
         super(plugin);
-        if (!config.getBoolean("trade")) {
+        if (config.getBoolean("trade")) {
             var command = plugin.getCommand("trade");
             command.setExecutor(new TradeCommand());
             command.setTabCompleter(this);
