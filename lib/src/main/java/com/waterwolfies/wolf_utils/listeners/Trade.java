@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -90,6 +91,10 @@ public class Trade extends BaseListener implements TabCompleter {
      * <p> A Map of {@link org.bukkit.inventory.Inventory Inventories} mapped to a uuid
      */
     public Map<String, Inventory> tradeInventories = new HashMap<>();
+    /**
+     * <p> A Map of DisplayNames to UUIDs
+     */
+    public Map<String, UUID> distoUUID = new HashMap<>();
 
     /**
      * Checks when a {@link org.bukkit.entity.Player Player} right clicks on another {@link org.bukkit.entity.Player Player}
@@ -153,6 +158,8 @@ public class Trade extends BaseListener implements TabCompleter {
         TradeInventory inventory = new TradeInventory(senderUUID, requesteeUUID);
         tradeStorage.computeIfAbsent(requesteeUUID, key -> new HashMap<>());
         tradeStorage.get(requesteeUUID).put(senderUUID, inventory);
+        distoUUID.computeIfAbsent(PlainTextComponentSerializer.plainText().serialize(sender.displayName()), k -> sender.getUniqueId());
+        distoUUID.computeIfAbsent(PlainTextComponentSerializer.plainText().serialize(requestee.displayName()), k -> requestee.getUniqueId());
         // sender.openInventory(inventory.getInventory());
         // requestee.openInventory(inventory.getInventory());
     }
@@ -185,9 +192,7 @@ public class Trade extends BaseListener implements TabCompleter {
             return;
         }
         try {
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                tradeInventory.close();
-            });
+            tradeInventory.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -330,7 +335,7 @@ public class Trade extends BaseListener implements TabCompleter {
         public void close() {
             if (!disposed) {
                 disposed = true;
-                Bukkit.getScheduler().runTaskAsynchronously(plugin, inventory::close);
+                Bukkit.getScheduler().runTask(plugin, inventory::close);
                 /* var viewers = inventory.getViewers();
                 if (viewers.isEmpty()) {
                     return;
@@ -376,7 +381,7 @@ public class Trade extends BaseListener implements TabCompleter {
                         player.sendMessage(Component.text("Missing Player", NamedTextColor.RED));
                         return false;
                     }
-                    Player reqPlayer = Bukkit.getPlayer(args[1]);
+                    Player reqPlayer = Bukkit.getPlayer(distoUUID.get(args[1]));
                     if (reqPlayer == null) {
                         player.sendMessage(Component.text("No player was found", NamedTextColor.RED));
                         return true;
@@ -384,6 +389,7 @@ public class Trade extends BaseListener implements TabCompleter {
                     if (reqPlayer.getUniqueId().toString().equals(player.getUniqueId().toString())) {
                         player.sendMessage(Component.text("You cannot trade with yourself"));
                     }
+                    requestSend(player, reqPlayer);
                     break;
                 }
                 case "confirm":
@@ -392,7 +398,7 @@ public class Trade extends BaseListener implements TabCompleter {
                         player.sendMessage(Component.text("Missing Player", NamedTextColor.RED));
                         return false;
                     }
-                    Player senderPlayer = Bukkit.getPlayer(args[1]);
+                    Player senderPlayer = Bukkit.getPlayer(distoUUID.get(args[1]));
                     if (senderPlayer == null) {
                         player.sendMessage(Component.text("No player was found", NamedTextColor.RED));
                         return true;
