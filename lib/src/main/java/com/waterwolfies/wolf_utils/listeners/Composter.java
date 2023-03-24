@@ -16,11 +16,9 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.entity.HumanEntity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -36,8 +34,6 @@ import org.jetbrains.annotations.NotNull;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.Style;
-import net.kyori.adventure.text.format.TextDecoration;
 
 public class Composter extends BaseListener {
 
@@ -173,7 +169,7 @@ public class Composter extends BaseListener {
         int slot = event.getSlot();
         if (slot == -999) {
             return;
-        } else if (slot == 4 || (!Utils.isCompostable(cursor) && cursor.getType() != Material.AIR)) {
+        } else if ((slot % 9) == 4 || (!Utils.isCompostable(cursor) && cursor.getType() != Material.AIR)) {
             event.setCancelled(true);
             return;
         }

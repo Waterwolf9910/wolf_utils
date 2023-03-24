@@ -134,8 +134,8 @@ public class Trade extends BaseListener implements TabCompleter {
             @Override
             public void run() {
                 timeouts.get(senderUUID).remove(requesteeUUID);
-                sender.sendMessage(Component.text("Trade Timedout"));
-                requestee.sendMessage(Component.text("Trade Timedout"));
+                sender.sendMessage(Component.text("Trade Timed out"));
+                requestee.sendMessage(Component.text("Trade Timed out"));
             }
             
             //mil -> s -> min
@@ -185,7 +185,9 @@ public class Trade extends BaseListener implements TabCompleter {
             return;
         }
         try {
-            tradeInventory.close();
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                tradeInventory.close();
+            });
         } catch (Exception e) {
             e.printStackTrace();
         }
