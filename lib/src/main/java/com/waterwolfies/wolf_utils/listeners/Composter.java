@@ -14,6 +14,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
@@ -49,15 +50,18 @@ public class Composter extends BaseListener {
         super(plugin);
     }
 
+    // Saves the inventory to disk
     @EventHandler
     public void onSave(WorldSaveEvent event) {
         if (!config.getBoolean("composter_gui")) {
             return;
         }
         World world = event.getWorld();
+        // locaation: { slot: item }
         Map<String, Map<Integer, byte[]>> inventories = new HashMap<>();
         String worldName = world.getName();
         composterInventories.computeIfAbsent(worldName, k -> new HashMap<>());
+        // Get the inventory of all interacted composters and serialize there items
         for (var composters : composterInventories.get(worldName).entrySet()) {
             ItemStack[] _inventory = composters.getValue().getContents();
             Map<Integer, byte[]> inventory = new HashMap<>();
@@ -66,11 +70,14 @@ public class Composter extends BaseListener {
                     inventory.put(i, _inventory[i].serializeAsBytes());
                 }
             }
+            // Input the inventory into a  
             inventories.put(gson.toJson(composters.getKey().serialize()), inventory);
         }
+        // Write the composte inventory to persistent storage
         world.getPersistentDataContainer().set(composter_key, PersistentDataType.STRING, gson.toJson(inventories));
     }
 
+    // Loads the inventory from disk
     @EventHandler
     public void onLoad(WorldLoadEvent event) {
         if (!config.getBoolean("composter_gui")) {
@@ -81,12 +88,14 @@ public class Composter extends BaseListener {
         if (!world.getPersistentDataContainer().has(composter_key)) {
             return;
         }
+        // Get the json string from persistent storage
         String json = world.getPersistentDataContainer().get(composter_key, PersistentDataType.STRING);
         HashMap<Location, Inventory> composters = new HashMap<>();
         Map<String, Map<Integer, byte[]>> inventories = new Gson().fromJson(
             json,
-            new TypeToken<Map<String, Map<Integer, byte[]>>>() {}
+            new TypeToken<Map<String, Map<Integer, byte[]>>>() {} // Define how the string will be deserialized
         );
+        // Start deserializing
         for (var composter : inventories.entrySet()) {
             var inventory = new ComposterInventory();
             for (var cinv : composter.getValue().entrySet()) {
@@ -94,10 +103,12 @@ public class Composter extends BaseListener {
             }
             composters.put(Location.deserialize(gson.fromJson(composter.getKey(), new TypeToken<HashMap<String, Object>>() {})), inventory.getInventory());
         }
+        // Put the inventory into memory
         composterInventories.put(worldName, composters);
         
     }
 
+    // Drops all items from the inventory like a chest
     @EventHandler
     public void onBlockDestory(BlockBreakEvent event) {
         if (!config.getBoolean("composter_gui")) {
@@ -118,9 +129,12 @@ public class Composter extends BaseListener {
             }
             block.getWorld().dropItemNaturally(block.getLocation(), item);
         }
+
+        // Remove the inventory from the cache
         composterInventories.get(block.getWorld().getName()).remove(block.getLocation());
     }
 
+    // Opens the inventory on click
     @EventHandler
     public void onBlockClick(PlayerInteractEvent event) {
         if (!config.getBoolean("composter_gui") || event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getInteractionPoint() == null || event.getPlayer().isSneaking()) {
@@ -136,6 +150,7 @@ public class Composter extends BaseListener {
             return;
         }
 
+        // Get the inventory of the composter at the locations
         String worldName = block.getWorld().getName();
         composterInventories.computeIfAbsent(worldName, k -> new HashMap<>());
         Map<Location, Inventory> composters = composterInventories.get(worldName);
@@ -146,6 +161,7 @@ public class Composter extends BaseListener {
         event.setCancelled(true);
     }
 
+    // Disable dragging
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         if (!(event.getInventory().getHolder() instanceof ComposterInventory) || !config.getBoolean("composter_gui")) {

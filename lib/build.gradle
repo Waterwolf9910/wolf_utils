@@ -12,16 +12,25 @@ plugins {
     id("xyz.jpenilla.run-paper") version "2.0.1"
 }
 
-version = "0.2.6"
+version = "0.3.0"
 
 repositories {
     // Use Maven Central for resolving dependencies.
     mavenCentral()
     maven { url "https://repo.papermc.io/repository/maven-public/" }
+    // maven {
+    //     name "essentialsx-releases"
+    //     url "https://repo.essentialsx.net/releases/"
+    // }
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.19.3-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
+
+    // Lucky Perms Integration
+    compileOnly 'net.luckperms:api:5.4'
+    
+    // compileOnly 'net.essentialsx:EssentialsX:2.19.0'
     
     implementation 'io.github.classgraph:classgraph:4.8.157'
     // Use JUnit Jupiter for testing.
@@ -60,6 +69,6 @@ tasks.named("jar") {
 // }
 tasks {
     runServer {
-        minecraftVersion("1.19.3")
+        minecraftVersion("1.20.1")
     }
 }

@@ -21,6 +21,7 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -41,13 +42,13 @@ import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
-public class Trade extends BaseListener implements TabCompleter {
+public class Trade extends BaseListener implements TabCompleter, CommandExecutor {
 
     public Trade(Plugin plugin) {
         super(plugin);
         if (config.getBoolean("trade")) {
             var command = plugin.getCommand("trade");
-            command.setExecutor(new TradeCommand());
+            command.setExecutor(this);
             command.setTabCompleter(this);
         }
     }
@@ -64,6 +65,9 @@ public class Trade extends BaseListener implements TabCompleter {
             }
             if ("accept".startsWith(args[0])) {
                 completes.add("accept");
+            }
+            if ("cancel".startsWith(args[0])) {
+                completes.add("cancel");
             }
         } else if (args.length == 2) {
             for (Player player : Bukkit.getOnlinePlayers()) {
@@ -91,16 +95,12 @@ public class Trade extends BaseListener implements TabCompleter {
      * <p> A Map of {@link org.bukkit.inventory.Inventory Inventories} mapped to a uuid
      */
     public Map<String, Inventory> tradeInventories = new HashMap<>();
-    /**
-     * <p> A Map of DisplayNames to UUIDs
-     */
-    public Map<String, UUID> distoUUID = new HashMap<>();
 
     /**
      * Checks when a {@link org.bukkit.entity.Player Player} right clicks on another {@link org.bukkit.entity.Player Player}
      * @param event The Event
      */
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerClick(PlayerInteractEntityEvent event) {
         if (!config.getBoolean("trade")) {
             return;
@@ -130,6 +130,7 @@ public class Trade extends BaseListener implements TabCompleter {
         String requesteeUUID = requestee.getUniqueId().toString();
         timeouts.computeIfAbsent(senderUUID, key -> new HashMap<>());
         var timeout = timeouts.get(senderUUID);
+        // Stop people from spaming the command
         if (timeout.containsKey(requesteeUUID)) {
             sender.sendMessage(Component.text("You have already sent this player a trade request", NamedTextColor.RED));
             return;
@@ -158,12 +159,11 @@ public class Trade extends BaseListener implements TabCompleter {
         TradeInventory inventory = new TradeInventory(senderUUID, requesteeUUID);
         tradeStorage.computeIfAbsent(requesteeUUID, key -> new HashMap<>());
         tradeStorage.get(requesteeUUID).put(senderUUID, inventory);
-        distoUUID.computeIfAbsent(PlainTextComponentSerializer.plainText().serialize(sender.displayName()), k -> sender.getUniqueId());
-        distoUUID.computeIfAbsent(PlainTextComponentSerializer.plainText().serialize(requestee.displayName()), k -> requestee.getUniqueId());
         // sender.openInventory(inventory.getInventory());
         // requestee.openInventory(inventory.getInventory());
     }
 
+    // Push the items from the result inventory to the player
     @EventHandler
     public void onPlayerCloseInv2(InventoryCloseEvent event){
         if (!(event.getInventory().getHolder() instanceof PersonalInventory inv) || !config.getBoolean("trade")) {
@@ -186,6 +186,7 @@ public class Trade extends BaseListener implements TabCompleter {
         inv.getInventory().setContents(remain.values().toArray(new ItemStack[0]));
     }
 
+    // Close the trade inventory for the other player on close
     @EventHandler
     public void onPlayerCloseInv(InventoryCloseEvent event) {
         if (!(event.getInventory().getHolder() instanceof TradeInventory tradeInventory) || !config.getBoolean("trade")) {
@@ -198,6 +199,7 @@ public class Trade extends BaseListener implements TabCompleter {
         }
     }
 
+    // Disabllow inventory dragging
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         if (!(event.getInventory().getHolder() instanceof TradeInventory) || !config.getBoolean("trade")) {
@@ -208,6 +210,13 @@ public class Trade extends BaseListener implements TabCompleter {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
+
+        // Check if we are accessing the trade inventory
+        if (event.getClickedInventory() == null || !(event.getClickedInventory().getHolder() instanceof TradeInventory tradeInventory)  || !config.getBoolean("trade")) {
+            return;
+        }
+
+        // Disallow shift clicking
         if (event.getClick() == ClickType.DOUBLE_CLICK || event.isShiftClick()) {
             if (event.getView().getTopInventory() instanceof TradeInventory) {
                 event.setCancelled(true);
@@ -215,17 +224,16 @@ public class Trade extends BaseListener implements TabCompleter {
             return;
         }
 
-        if (event.getClickedInventory() == null || !(event.getClickedInventory().getHolder() instanceof TradeInventory tradeInventory)  || !config.getBoolean("trade")) {
-            return;
-        }
         HumanEntity player = event.getWhoClicked();
         boolean isRight = player.getUniqueId().toString().equals(tradeInventory.getRightUUID());
         int slot = event.getSlot();
 
         if (slot == 22) {
+            // Confirm the trade
             tradeInventory.setConfirm(true, isRight);
             event.setCancelled(true);
         } else if (slot == 31) {
+            // Cancel the trade
             try {
                 tradeInventory.close();
             } catch (Exception e) {
@@ -233,14 +241,151 @@ public class Trade extends BaseListener implements TabCompleter {
             }
             event.setCancelled(true);
         } else if (slot == -999) {// outside of inventory
-        } else if (
+        } else if ( // Check if we are accessing the wrong side
             ((slot % 9) < 5 && isRight) ||
             ((slot % 9) > 3 && !isRight)
         ) {
             event.setCancelled(true);
         } else {
+            // Uncomfirm the trade due to modification
             tradeInventory.setConfirm(false, isRight);
         }
+    }
+
+    @Override
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(Component.text("A Player must run this command", NamedTextColor.RED));
+            return false;
+        }
+        
+        if (args.length < 1) {
+            player.sendMessage(Component.text("No Argument found", NamedTextColor.RED));
+            return false;
+        }
+        switch (args[0]) {
+            case "inventory": {
+                Player target = null;
+                if (args.length > 1) {
+                    // Check if sender has permission
+                    if (!player.hasPermission("wolf_utils.trade__inventory")) {
+                        player.sendMessage(Component.text("You do not have access to others' trade inventory", NamedTextColor.RED));
+                        return true;
+                    }
+                    target = Bukkit.getPlayer(args[1]);
+                    if (target == null) {
+                        PlayerCache.getCache().get(args[1]);
+                    }
+                }
+
+                if (target == null) {
+                    target = player;
+                }
+
+                // No inventory to open
+                if (!tradeInventories.containsKey(target.getUniqueId().toString())) { 
+                    player.sendMessage(Component.text("You have no items in your trade inventory", NamedTextColor.RED));
+                    return true;
+                }
+
+                // Do not allow the trade inventory to be used as a extra inventory
+                if (Utils.isInvEmpty(tradeInventories.get(target.getUniqueId().toString()))) {
+                    player.sendMessage(Component.text("You have no items in your trade inventory", NamedTextColor.RED));
+                    return true;
+                }
+
+                // Open the inventory
+                player.openInventory(tradeInventories.get(target.getUniqueId().toString()));
+                break;
+            }
+
+            case "request": {
+                if (args.length < 2) {
+                    player.sendMessage(Component.text("Missing Player", NamedTextColor.RED));
+                    return false;
+                }
+
+                // Get the requested player
+                Player reqPlayer = Bukkit.getPlayer(args[1]);
+                if (reqPlayer == null) {
+                    reqPlayer = Bukkit.getPlayer(PlayerCache.getCache().get(args[1]));
+                    if (reqPlayer == null) {
+                        player.sendMessage(Component.text("No player was found", NamedTextColor.RED));
+                        return true;
+                    }
+                }
+
+                // Limit trading with self
+                if (reqPlayer.getUniqueId().toString().equals(player.getUniqueId().toString())) {
+                    player.sendMessage(Component.text("You cannot trade with yourself"));
+                }
+
+                // Send the request
+                requestSend(player, reqPlayer);
+                break;
+            }
+
+            case "confirm":
+            case "accept": {
+                if (args.length < 2) {
+                    player.sendMessage(Component.text("Missing Player", NamedTextColor.RED));
+                    return false;
+                }
+                Player senderPlayer = Bukkit.getPlayer(args[1]);
+                // Find the Player
+                if (senderPlayer == null) {
+                    senderPlayer = Bukkit.getPlayer(PlayerCache.getCache().get(args[1]));
+                    if (senderPlayer == null) {
+                        player.sendMessage(Component.text("No player was found", NamedTextColor.RED));
+                        return true;
+                    }
+                }
+                // Get the request
+                var map = tradeStorage.get(player.getUniqueId().toString());
+                if (!map.containsKey(senderPlayer.getUniqueId().toString())) {
+                    player.sendMessage(Component.text("No request from " + PlainTextComponentSerializer.plainText().serialize(senderPlayer.displayName())));
+                    return true;
+                }
+                // Cancel timeouts, remove timeout, open inventories
+                timeouts.get(senderPlayer.getUniqueId().toString()).get(player.getUniqueId().toString()).cancel();
+                timeouts.get(senderPlayer.getUniqueId().toString()).get(player.getUniqueId().toString()).purge();
+                timeouts.get(senderPlayer.getUniqueId().toString()).remove(player.getUniqueId().toString());
+                player.openInventory(map.get(senderPlayer.getUniqueId().toString()).getInventory());
+                senderPlayer.openInventory(map.get(senderPlayer.getUniqueId().toString()).getInventory());
+                break;
+            }
+
+            case "cancel": {
+                if (args.length < 2) {
+                    player.sendMessage(Component.text("Missing Player", NamedTextColor.RED));
+                    return false;
+                }
+                Player requestPlayer = Bukkit.getPlayer(args[1]);
+                // Find the Player
+                if (requestPlayer == null) {
+                    requestPlayer = Bukkit.getPlayer(PlayerCache.getCache().get(args[1]));
+                    if (requestPlayer == null) {
+                        player.sendMessage(Component.text("No player was found", NamedTextColor.RED));
+                        return true;
+                    }
+                }
+                // Get the request
+                var map = tradeStorage.get(requestPlayer.getUniqueId().toString());
+                if (!map.containsKey(player.getUniqueId().toString())) {
+                    player.sendMessage(Component.text("No request to " + PlainTextComponentSerializer.plainText().serialize(requestPlayer.displayName())));
+                    return true;
+                }
+                // Cancel and remove timeout
+                timeouts.get(player.getUniqueId().toString()).get(requestPlayer.getUniqueId().toString()).cancel();
+                timeouts.get(player.getUniqueId().toString()).get(requestPlayer.getUniqueId().toString()).purge();
+                timeouts.get(player.getUniqueId().toString()).remove(requestPlayer.getUniqueId().toString());
+                player.sendMessage(Component.text("Trade request cancelled"));
+                requestPlayer.sendMessage(Component.text("Trade request cancelled"));
+                break;
+            }
+        }
+
+        return true;
     }
     
     protected class TradeInventory implements InventoryHolder {
@@ -251,6 +396,7 @@ public class Trade extends BaseListener implements TabCompleter {
         private boolean confirmRight = false;
         private boolean disposed = false;
         public TradeInventory(String leftUUID, String rightUUID) {
+            // Create inventory and setup gui
             inventory = Bukkit.createInventory(this, 54, Component.text("Trading"));
             ItemStack none = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
             ItemMeta noneMeta = none.getItemMeta();
@@ -265,12 +411,15 @@ public class Trade extends BaseListener implements TabCompleter {
             cancelMeta.displayName(Component.text("Cancel", Style.style(NamedTextColor.RED, TextDecoration.BOLD)));
             cancel.setItemMeta(cancelMeta);
             int placement = 4;
+            // Center separater
             while (placement < 54) {
                 inventory.setItem(placement, none.ensureServerConversions());
                 placement = placement + 9;
             }
+            // Confirm and cancel
             inventory.setItem(22, confirm.ensureServerConversions());
             inventory.setItem(31, cancel.ensureServerConversions());
+            // Set who is on what side
             this.leftUUID = leftUUID;
             this.rightUUID = rightUUID;
         }
@@ -297,7 +446,9 @@ public class Trade extends BaseListener implements TabCompleter {
             if (!isConfirmed()) {
                 return;
             }
+            // Copy list
             List<HumanEntity> viewers = new ArrayList<>(inventory.getViewers());
+            // Close the inventory for the two players 
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (viewers.isEmpty()) {
                     return;
@@ -307,9 +458,11 @@ public class Trade extends BaseListener implements TabCompleter {
                     entity.sendMessage(Component.text("Trade Complete!", NamedTextColor.GREEN));
                     entity.closeInventory(InventoryCloseEvent.Reason.CANT_USE);
                     String uuid = entity.getUniqueId().toString();
+                    // Create a new inventory with the player's trade result
                     tradeInventories.computeIfAbsent(uuid, k -> new PersonalInventory("Trade Result").getInventory());
                     var _inventory = tradeInventories.get(uuid);
                     boolean right = uuid.equals(rightUUID);
+                    // Populate the inventory with the items from the previous inventory
                     int slot = right ? 0 : 5;
                     while (slot < 54) {
                         if (( (slot % 9) < 5 && !right ) || ( (slot % 9) > 3 && right )) {
@@ -323,6 +476,7 @@ public class Trade extends BaseListener implements TabCompleter {
                         }
                         _inventory.addItem(item);
                     }
+                    // Open the new inventory for the player
                     entity.openInventory(_inventory);
                 });
             });
@@ -348,77 +502,6 @@ public class Trade extends BaseListener implements TabCompleter {
                 }); */
             }
         }
-    }
-
-    protected class TradeCommand implements CommandExecutor {
-
-        @Override
-        public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-            if (!(sender instanceof Player player)) {
-                sender.sendMessage(Component.text("A Player must run this command", NamedTextColor.RED));
-                return false;
-            }
-            
-            if (args.length < 1) {
-                player.sendMessage(Component.text("No Argument found", NamedTextColor.RED));
-                return false;
-            }
-            switch (args[0]) {
-                case "inventory": {
-                    if (!tradeInventories.containsKey(player.getUniqueId().toString())) { 
-                        player.sendMessage(Component.text("You have no items in your trade inventory", NamedTextColor.RED));
-                        return true;
-                    }
-                    if (Utils.isInvEmpty(tradeInventories.get(player.getUniqueId().toString()))) {
-                        player.sendMessage(Component.text("You have no items in your trade inventory", NamedTextColor.RED));
-                        return true;
-                    }
-                    player.openInventory(tradeInventories.get(player.getUniqueId().toString()));
-                    break;
-                }
-                case "request": {
-                    if (args.length < 2) {
-                        player.sendMessage(Component.text("Missing Player", NamedTextColor.RED));
-                        return false;
-                    }
-                    Player reqPlayer = Bukkit.getPlayer(distoUUID.get(args[1]));
-                    if (reqPlayer == null) {
-                        player.sendMessage(Component.text("No player was found", NamedTextColor.RED));
-                        return true;
-                    }
-                    if (reqPlayer.getUniqueId().toString().equals(player.getUniqueId().toString())) {
-                        player.sendMessage(Component.text("You cannot trade with yourself"));
-                    }
-                    requestSend(player, reqPlayer);
-                    break;
-                }
-                case "confirm":
-                case "accept": {
-                    if (args.length < 2) {
-                        player.sendMessage(Component.text("Missing Player", NamedTextColor.RED));
-                        return false;
-                    }
-                    Player senderPlayer = Bukkit.getPlayer(distoUUID.get(args[1]));
-                    if (senderPlayer == null) {
-                        player.sendMessage(Component.text("No player was found", NamedTextColor.RED));
-                        return true;
-                    }
-                    var map = tradeStorage.get(player.getUniqueId().toString());
-                    if (!map.containsKey(senderPlayer.getUniqueId().toString())) {
-                        player.sendMessage(Component.text("No request from " + PlainTextComponentSerializer.plainText().serialize(senderPlayer.displayName())));
-                        return true;
-                    }
-                    timeouts.get(senderPlayer.getUniqueId().toString()).get(player.getUniqueId().toString()).cancel();
-                    timeouts.get(senderPlayer.getUniqueId().toString()).get(player.getUniqueId().toString()).purge();
-                    timeouts.get(senderPlayer.getUniqueId().toString()).remove(player.getUniqueId().toString());
-                    player.openInventory(map.get(senderPlayer.getUniqueId().toString()).getInventory());
-                    senderPlayer.openInventory(map.get(senderPlayer.getUniqueId().toString()).getInventory());
-                }
-            }
-
-            return true;
-        }
-        
     }
 
 }

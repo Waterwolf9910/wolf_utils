@@ -26,8 +26,10 @@ public class Utils {
 
     public static boolean isCompostable(Material mat) {
         switch (mat) {
+            // 100%
             case CAKE:
             case PUMPKIN_PIE:
+            // 85%
             case BAKED_POTATO:
             case BREAD:
             case COOKIE:
@@ -36,7 +38,10 @@ public class Utils {
             case RED_MUSHROOM_BLOCK:
             case BROWN_MUSHROOM_BLOCK:
             case NETHER_WART_BLOCK:
+            case PITCHER_PLANT:
+            case TORCHFLOWER:
             case WARPED_WART_BLOCK:
+            // 65%
             case APPLE:
             case AZALEA:
             case BEETROOT:
@@ -78,6 +83,7 @@ public class Utils {
             case SHROOMLIGHT:
             case SPORE_BLOSSOM:
             case WHEAT:
+            // 50%
             case CACTUS:
             case DRIED_KELP_BLOCK:
             case FLOWERING_AZALEA_LEAVES:
@@ -88,6 +94,7 @@ public class Utils {
             case TWISTING_VINES:
             case VINE:
             case WEEPING_VINES:
+            // 30%
             case BEETROOT_SEEDS:
             case DRIED_KELP:
             case GLOW_BERRIES:
@@ -106,6 +113,8 @@ public class Utils {
             case AZALEA_LEAVES:
             case MELON_SEEDS:
             case MOSS_CARPET:
+            case PINK_PETALS:
+            case PITCHER_POD:
             case PUMPKIN_SEEDS:
             case OAK_SAPLING:
             case JUNGLE_SAPLING:
@@ -116,6 +125,7 @@ public class Utils {
             case SEAGRASS:
             case SMALL_DRIPLEAF:
             case SWEET_BERRIES:
+            case TORCHFLOWER_SEEDS:
             case WHEAT_SEEDS: {
                 return true;
             }

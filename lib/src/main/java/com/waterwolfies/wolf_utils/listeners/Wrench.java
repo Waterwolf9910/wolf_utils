@@ -24,6 +24,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -93,7 +94,7 @@ public class Wrench extends BaseListener {
     /**
      * Checks when a block is clicked
      */
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onBlockClick(PlayerInteractEvent event) {
         if (!config.getBoolean("wrench") || event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getInteractionPoint() == null) {
             return;
@@ -116,16 +117,16 @@ public class Wrench extends BaseListener {
         if (block == null) {
             return;
         }
+
+        // Ignore any blocks in the blacklist
         if (config.getStringList("wrench_blacklist").contains(block.getType().getKey().asString())) {
             return;
         }
         
-        // System.out.println(d);
         BlockData bd = block.getBlockData();
         if (player.isSneaking() && bd instanceof Openable blockData) {
             blockData.setOpen(!blockData.isOpen());
-        } else if ((bd) instanceof Orientable blockData) {
-            // bd = 
+        } else if (bd instanceof Orientable blockData) {
             reorientate(blockData);
         } else if (bd instanceof Directional blockData) {
             changedir(blockData);
@@ -146,9 +147,9 @@ public class Wrench extends BaseListener {
     protected FaceAttachable changeface(FaceAttachable blockData) {
         boolean useNext = false;
         FaceAttachable.AttachedFace _face = blockData.getAttachedFace();
-        // System.out.println(faces);
+        
         for (FaceAttachable.AttachedFace face : FaceAttachable.AttachedFace.values()) {
-            // System.out.println(face);
+            
             if (face == _face) {
                 useNext = true;
                 continue;
@@ -159,7 +160,7 @@ public class Wrench extends BaseListener {
                 break;
             }
         }
-        // System.out.println(blockData.getFacing());
+        
         if (useNext) {
             blockData.setAttachedFace(FaceAttachable.AttachedFace.values()[0]);
         }
@@ -169,9 +170,9 @@ public class Wrench extends BaseListener {
     protected Rotatable changerot(Rotatable blockData) {
         boolean useNext = false;
         BlockFace _rot = blockData.getRotation();
-        // System.out.println(faces);
+        
         for (BlockFace rot : BlockFace.values()) {
-            // System.out.println(face);
+            
             if (rot == _rot) {
                 useNext = true;
                 continue;
@@ -182,7 +183,7 @@ public class Wrench extends BaseListener {
                 break;
             }
         }
-        // System.out.println(blockData.getFacing());
+        
         if (useNext) {
             blockData.setRotation(BlockFace.values()[0]);
         }
@@ -202,9 +203,9 @@ public class Wrench extends BaseListener {
         boolean useNext = false;
         Rail.Shape _shape = blockData.getShape();
         Set<Rail.Shape> shapes = blockData.getShapes();
-        // System.out.println(faces);
+        
         for (Rail.Shape shape : shapes) {
-            // System.out.println(face);
+            
             if (shape == _shape) {
                 useNext = true;
                 continue;
@@ -220,7 +221,7 @@ public class Wrench extends BaseListener {
                 break;
             }
         }
-        // System.out.println(blockData.getFacing());
+        
         if (useNext) {
             blockData.setShape((Rail.Shape) blockData.getShapes().toArray()[0]);
         }
@@ -231,9 +232,9 @@ public class Wrench extends BaseListener {
         boolean useNext = false;
         BlockFace _face = blockData.getFacing();
         Set<BlockFace> faces = blockData.getFaces();
-        // System.out.println(faces);
+        
         for (BlockFace face : faces) {
-            // System.out.println(face);
+            
             if (face == _face) {
                 useNext = true;
                 continue;
@@ -244,7 +245,7 @@ public class Wrench extends BaseListener {
                 break;
             }
         }
-        // System.out.println(blockData.getFacing());
+        
         if (useNext) {
             blockData.setFacing((BlockFace)blockData.getFaces().toArray()[0]);
         }
@@ -255,7 +256,7 @@ public class Wrench extends BaseListener {
         boolean useNext = false;
         Axis _axis = blockData.getAxis();
         for (Axis axis : blockData.getAxes()) {
-            // System.out.println(face);
+            
             if (axis == _axis) {
                 useNext = true;
                 continue;
@@ -269,32 +270,6 @@ public class Wrench extends BaseListener {
         if (useNext) {
             blockData.setAxis((Axis) blockData.getAxes().toArray()[0]);
         }
-        /* switch (blockData.getAxis()) {
-            case X: {
-                if (blockData.getAxes().contains(Axis.Y)) {
-                    blockData.setAxis(Axis.Y);
-                } else if (blockData.getAxes().contains(Axis.Z)) {
-                    blockData.setAxis(Axis.Z);
-                }
-                break;
-            }
-            case Y: {
-                if (blockData.getAxes().contains(Axis.Z)) {
-                    blockData.setAxis(Axis.Z);
-                } else if (blockData.getAxes().contains(Axis.X)) {
-                    blockData.setAxis(Axis.X);
-                }
-                break;
-            }
-            case Z: {
-                if (blockData.getAxes().contains(Axis.X)) {
-                    blockData.setAxis(Axis.X);
-                } else if (blockData.getAxes().contains(Axis.Y)) {
-                    blockData.setAxis(Axis.Y);
-                }
-                break;
-            }
-        } */
         return blockData;
     }
 
